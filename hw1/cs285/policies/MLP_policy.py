@@ -8,6 +8,7 @@ Functions to edit:
 
 import abc
 import itertools
+import sys
 from typing import Any
 from torch import nn
 from torch.nn import functional as F
@@ -15,10 +16,21 @@ from torch import optim
 
 import numpy as np
 import torch
-from torch import distributions
+from torch import distributions, normal
+from pathlib import Path
 
-from cs285.infrastructure import pytorch_util as ptu
-from cs285.policies.base_policy import BasePolicy
+# Get the current file's directory
+current_directory = Path(__file__).resolve().parent
+
+# Move up one directory
+parent_directory = current_directory.parent
+
+# Add the parent directory to sys.path
+sys.path.append(str(parent_directory))
+
+from infrastructure import pytorch_util as ptu
+from policies.base_policy import BasePolicy
+
 
 
 def build_mlp(
@@ -129,7 +141,17 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # through it. For example, you can return a torch.FloatTensor. You can also
         # return more flexible objects, such as a
         # `torch.distributions.Distribution` object. It's up to you!
-        raise NotImplementedError
+
+        # Calculate mean of policy distribution (mapping of states to actions)
+        mean = self.mean_net(observation)
+        # Take exp of log std to get std of distribution
+        # log std and mean are learned separately but optimized together
+        # Learn log std instead of std so it can always be exponentiated and made positive
+        std = torch.exp(self.logstd)
+        # Create distribution using torch.normal
+        action = normal(mean, std, size=(0))
+        # Return the action sampled from the policy
+        return action
 
     def update(self, observations, actions):
         """
@@ -140,8 +162,22 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         :return:
             dict: 'Training Loss': supervised learning loss
         """
-        # TODO: update the policy and return the loss
-        loss = TODO
+        predicted_actions = self.forward(observations)
+    
+        # Compute the loss between the predicted actions and the expert actions
+        # Using torch.functional.mse loss cause its function and no need to instantiat class
+        # like you need to with torch.nn.mseloss
+        loss = F.mse_loss(predicted_actions, actions)  # Using Mean Squared Error loss
+
+        # Zero gradients before backpropagation
+        self.optimizer.zero_grad()
+
+        # Backpropagate the loss
+        loss.backward()
+
+        # Step the optimizer
+        self.optimizer.step()
+
         return {
             # You can add extra logging information here, but keep this line
             'Training Loss': ptu.to_numpy(loss),

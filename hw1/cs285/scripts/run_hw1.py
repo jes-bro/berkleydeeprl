@@ -13,13 +13,29 @@ import gym
 import numpy as np
 import torch
 
-from cs285.infrastructure import pytorch_util as ptu
-from cs285.infrastructure import utils
-from cs285.infrastructure.logger import Logger
-from cs285.infrastructure.replay_buffer import ReplayBuffer
-from cs285.policies.MLP_policy import MLPPolicySL
-from cs285.policies.loaded_gaussian_policy import LoadedGaussianPolicy
+import sys
+import os
 
+import sys
+import os
+
+# Get the absolute path of the parent directory that houses /scripts and /infrastructure
+cs285_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+# Add /cs285 to sys.path
+sys.path.append(cs285_dir)
+
+# Now you can import the /infrastructure directory as a module
+import infrastructure
+
+
+from infrastructure import pytorch_util as ptu
+from infrastructure import utils
+from infrastructure.logger import Logger
+from infrastructure.replay_buffer import ReplayBuffer
+from policies.MLP_policy import MLPPolicySL
+from policies.loaded_gaussian_policy import LoadedGaussianPolicy
+from infrastructure.utils import sample_trajectory
 
 # how many rollouts to save as videos to tensorboard
 MAX_NVIDEO = 2
@@ -130,18 +146,22 @@ def run_training_loop(params):
             # DAGGER training from sampled data relabeled by expert
             assert params['do_dagger']
             # TODO: collect `params['batch_size']` transitions
+            trajectory = sample_trajectory(env, actor, params['ep_len'])
             # HINT: use utils.sample_trajectories
             # TODO: implement missing parts of utils.sample_trajectory
-            paths, envsteps_this_batch = TODO
+            while envsteps_this_batch < params['batch_size']:
+                observations = trajectory['observation']
 
-            # relabel the collected obs with actions from a provided expert policy
-            if params['do_dagger']:
-                print("\nRelabelling collected observations with labels from an expert policy...")
+                # relabel the collected obs with actions from a provided expert policy
+                if params['do_dagger']:
+                    expert_actions = expert_policy.forward(observations)
+                    trajectory["action"] = expert_actions
+                    print("\nRelabelling collected observations with labels from an expert policy...")
 
-                # TODO: relabel collected obsevations (from our policy) with labels from expert policy
-                # HINT: query the policy (using the get_action function) with paths[i]["observation"]
-                # and replace paths[i]["action"] with these expert labels
-                paths = TODO
+                paths.append(trajectory)
+                # enforce batch size
+                envsteps_this_batch += len(trajectory['reward'])
+            
 
         total_envsteps += envsteps_this_batch
         # add collected data to replay buffer
@@ -150,15 +170,24 @@ def run_training_loop(params):
         # train agent (using sampled data from replay buffer)
         print('\nTraining agent using sampled data from replay buffer...')
         training_logs = []
+        ob_batch = []
+        ac_batch = []
         for _ in range(params['num_agent_train_steps_per_iter']):
 
           # TODO: sample some data from replay_buffer
           # HINT1: how much data = params['train_batch_size']
           # HINT2: use np.random.permutation to sample random indices
           # HINT3: return corresponding data points from each array (i.e., not different indices from each array)
-          # for imitation learning, we only need observations and actions.  
-          ob_batch, ac_batch = TODO
-
+          # for imitation learning, we only need observations and actions. 
+          indices = np.random.permutation(params['train_batch_size'])
+          breakpoint()
+          ob_batch = replay_buffer.obs[indices]
+          ac_batch = replay_buffer.acs[indices]
+          # retrieve all observations at indices 
+          # one index is: replay_buffer[index].obs for obs and replay_buffer[index].acs
+          # so how to do all ? what is shape of replay buffer?
+          # thing by stuff in thing probably 
+          # if thats the case then 
           # use the sampled data to train an agent
           train_log = actor.update(ob_batch, ac_batch)
           training_logs.append(train_log)
