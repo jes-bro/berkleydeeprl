@@ -32,27 +32,21 @@ from infrastructure import pytorch_util as ptu
 from policies.base_policy import BasePolicy
 
 
-
-def build_mlp(
-        input_size: int,
-        output_size: int,
-        n_layers: int,
-        size: int
-) -> nn.Module:
+def build_mlp(input_size: int, output_size: int, n_layers: int, size: int) -> nn.Module:
     """
-        Builds a feedforward neural network
+    Builds a feedforward neural network
 
-        arguments:
-            n_layers: number of hidden layers
-            size: dimension of each hidden layer
-            activation: activation of each hidden layer
+    arguments:
+        n_layers: number of hidden layers
+        size: dimension of each hidden layer
+        activation: activation of each hidden layer
 
-            input_size: size of the input layer
-            output_size: size of the output layer
-            output_activation: activation of the output layer
+        input_size: size of the input layer
+        output_size: size of the output layer
+        output_activation: activation of the output layer
 
-        returns:
-            MLP (nn.Module)
+    returns:
+        MLP (nn.Module)
     """
     layers = []
     in_size = input_size
@@ -85,16 +79,18 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     update:
         Trains the policy with a supervised learning objective
     """
-    def __init__(self,
-                 ac_dim,
-                 ob_dim,
-                 n_layers,
-                 size,
-                 learning_rate=1e-4,
-                 training=True,
-                 nn_baseline=False,
-                 **kwargs
-                 ):
+
+    def __init__(
+        self,
+        ac_dim,
+        ob_dim,
+        n_layers,
+        size,
+        learning_rate=1e-4,
+        training=True,
+        nn_baseline=False,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         # init vars
@@ -109,17 +105,17 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         self.mean_net = build_mlp(
             input_size=self.ob_dim,
             output_size=self.ac_dim,
-            n_layers=self.n_layers, size=self.size,
+            n_layers=self.n_layers,
+            size=self.size,
         )
         self.mean_net.to(ptu.device)
         self.logstd = nn.Parameter(
-
             torch.zeros(self.ac_dim, dtype=torch.float32, device=ptu.device)
         )
         self.logstd.to(ptu.device)
         self.optimizer = optim.Adam(
             itertools.chain([self.logstd], self.mean_net.parameters()),
-            self.learning_rate
+            self.learning_rate,
         )
 
     def save(self, filepath):
@@ -143,13 +139,19 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # `torch.distributions.Distribution` object. It's up to you!
 
         # Calculate mean of policy distribution (mapping of states to actions)
-        mean = self.mean_net(observation)
+        observation = np.array([observation])
+        print(observation.shape)
+        observation_tensor = ptu.from_numpy(observation)
+        print(observation_tensor.shape)
+        # breakpoint()
+        self.mean_net.to(0)
+        mean = self.mean_net(observation_tensor)
         # Take exp of log std to get std of distribution
         # log std and mean are learned separately but optimized together
         # Learn log std instead of std so it can always be exponentiated and made positive
         std = torch.exp(self.logstd)
         # Create distribution using torch.normal
-        action = normal(mean, std, size=(0))
+        action = normal(mean, std)
         # Return the action sampled from the policy
         return action
 
@@ -162,12 +164,20 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         :return:
             dict: 'Training Loss': supervised learning loss
         """
+        actions_tensor = ptu.from_numpy(actions)
+        actions_tensor = actions_tensor.unsqueeze(0)
+        # print(actions_tensor.shape)
         predicted_actions = self.forward(observations)
-    
+        # print(predicted_actions.shape)
+        # print(f"actions_tensor: {actions_tensor}")
+        # print(f"predicted actions: {predicted_actions}")
+
         # Compute the loss between the predicted actions and the expert actions
         # Using torch.functional.mse loss cause its function and no need to instantiat class
         # like you need to with torch.nn.mseloss
-        loss = F.mse_loss(predicted_actions, actions)  # Using Mean Squared Error loss
+        loss = F.mse_loss(
+            predicted_actions, actions_tensor
+        )  # Using Mean Squared Error loss
 
         # Zero gradients before backpropagation
         self.optimizer.zero_grad()
@@ -180,5 +190,5 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
         return {
             # You can add extra logging information here, but keep this line
-            'Training Loss': ptu.to_numpy(loss),
+            "Training Loss": ptu.to_numpy(loss),
         }
