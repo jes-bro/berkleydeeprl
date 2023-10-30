@@ -35,7 +35,7 @@ def sample_trajectory(env, policy, max_path_length, render=False):
             )
 
         # TODO use the most recent ob to decide what to do
-        print(len(obs))
+        #print(len(obs))
         # breakpoint()
         ac = policy.forward(ob)
         ac_numpy = ptu.to_numpy(ac)

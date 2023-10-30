@@ -140,9 +140,9 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
         # Calculate mean of policy distribution (mapping of states to actions)
         observation = np.array([observation])
-        print(observation.shape)
+        #print(observation.shape)
         observation_tensor = ptu.from_numpy(observation)
-        print(observation_tensor.shape)
+        #print(observation_tensor.shape)
         # breakpoint()
         self.mean_net.to(0)
         mean = self.mean_net(observation_tensor)
