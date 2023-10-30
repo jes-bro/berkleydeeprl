@@ -1,4 +1,4 @@
-from cs285.infrastructure.utils import *
+from infrastructure.utils import *
 
 
 class ReplayBuffer(object):

@@ -1,0 +1,34 @@
+########################
+logging outputs to  /home/jess/berkleydeeprl/hw1/cs285/scripts/../../data/q1_bc_ant_Ant-v4_30-10-2023_09-36-27
+########################
+Using GPU id 0
+Loading expert policy from... cs285/policies/experts/Ant.pkl
+Done restoring expert policy...
+
+
+********** Iteration 0 ************
+
+Collecting data to be used for training...
+
+Training agent using sampled data from replay buffer...
+
+Beginning logging procedure...
+
+Collecting data for eval...
+Eval_AverageReturn : -1713.749267578125
+Eval_StdReturn : 1522.0987548828125
+Eval_MaxReturn : -191.6505126953125
+Eval_MinReturn : -3235.84814453125
+Eval_AverageEpLen : 525.5
+Train_AverageReturn : 4681.891673935816
+Train_StdReturn : 30.70862278765526
+Train_MaxReturn : 4712.600296723471
+Train_MinReturn : 4651.18305114816
+Train_AverageEpLen : 1000.0
+Training Loss : 1.1046615839004517
+Train_EnvstepsSoFar : 0
+TimeSinceStart : 1.6997947692871094
+Initial_DataCollection_AverageReturn : 4681.891673935816
+Done logging...
+
+

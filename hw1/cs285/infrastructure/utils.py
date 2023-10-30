@@ -8,8 +8,10 @@ from collections import OrderedDict
 import cv2
 import numpy as np
 import time
-
-from cs285.infrastructure import pytorch_util as ptu
+import os
+os.chdir("/home/jess/berkleydeeprl/hw1")
+og_dir = os.getcwd()
+from infrastructure import pytorch_util as ptu
 
 
 def sample_trajectory(env, policy, max_path_length, render=False):
@@ -33,7 +35,7 @@ def sample_trajectory(env, policy, max_path_length, render=False):
             )
 
         # TODO use the most recent ob to decide what to do
-        print(len(obs))
+        #print(len(obs))
         # breakpoint()
         ac = policy.forward(ob)
         ac_numpy = ptu.to_numpy(ac)
