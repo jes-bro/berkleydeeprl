@@ -32,7 +32,9 @@ def run_training_loop(args):
 
     # add action noise, if needed
     if args.action_noise_std > 0:
-        assert not discrete, f"Cannot use --action_noise_std for discrete environment {args.env_name}"
+        assert (
+            not discrete
+        ), f"Cannot use --action_noise_std for discrete environment {args.env_name}"
         env = ActionNoiseWrapper(env, args.seed, args.action_noise_std)
 
     max_ep_len = args.ep_len or env.spec.max_episode_steps
@@ -65,20 +67,30 @@ def run_training_loop(args):
 
     total_envsteps = 0
     start_time = time.time()
+    min_timesteps_per_batch = 2
 
     for itr in range(args.n_iter):
         print(f"\n********** Iteration {itr} ************")
-        # TODO: sample `args.batch_size` transitions using utils.sample_trajectories
+        # DONE: sample `args.batch_size` transitions using utils.sample_trajectories
         # make sure to use `max_ep_len`
-        trajs, envsteps_this_batch = None, None  # TODO
+        mlp_policy = ptu.build_mlp(10, 10, 10, 10)
+        trajs, envsteps_this_batch = utils.sample_trajectories(
+            env, mlp_policy, min_timesteps_per_batch, max_ep_len
+        )
         total_envsteps += envsteps_this_batch
 
         # trajs should be a list of dictionaries of NumPy arrays, where each dictionary corresponds to a trajectory.
         # this line converts this into a single dictionary of lists of NumPy arrays.
         trajs_dict = {k: [traj[k] for traj in trajs] for k in trajs[0]}
 
-        # TODO: train the agent using the sampled trajectories and the agent's update function
-        train_info: dict = None
+        # DONE: train the agent using the sampled trajectories and the agent's update function
+        train_info: dict
+        train_info = agent.update(
+            trajs_dict["obs"],
+            trajs_dict["actions"],
+            trajs_dict["rewards"],
+            trajs_dict["terminals"],
+        )
 
         if itr % args.scalar_log_freq == 0:
             # save eval metrics
