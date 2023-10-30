@@ -8,8 +8,10 @@ from collections import OrderedDict
 import cv2
 import numpy as np
 import time
-
-from cs285.infrastructure import pytorch_util as ptu
+import os
+os.chdir("/home/jess/berkleydeeprl/hw1")
+og_dir = os.getcwd()
+from infrastructure import pytorch_util as ptu
 
 
 def sample_trajectory(env, policy, max_path_length, render=False):
