@@ -1,0 +1,5 @@
+[default]
+entity = jes-bro
+project = homework1
+base_url = https://api.wandb.ai
+
