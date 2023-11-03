@@ -73,18 +73,18 @@ class PGAgent(nn.Module):
         actions_concatenated = np.concatenate(actions, axis=0)
         rewards_concatenated = np.concatenate(rewards, axis=0)
         terminals_concatenated = np.concatenate(terminals, axis=0)
-
+        #breakpoint()
         # At this point, obs, actions, rewards, and terminals are each a single array,
         # where the first dimension is the total number of samples (batch size).
 
         # step 2: calculate advantages from Q values
         advantages: np.ndarray = self._estimate_advantage(
-            obs, rewards, q_values, terminals
+            obs_concatenated, rewards_concatenated, q_values, terminals_concatenated
         )
 
         # step 3: use all datapoints (s_t, a_t, adv_t) to update the PG actor/policy
         # DONE: update the PG actor/policy network once using the advantages
-        info: dict = self.actor.update(obs, actions, advantages)
+        info: dict = self.actor.update(obs_concatenated, actions_concatenated, advantages)
 
         # step 4: if needed, use all datapoints (s_t, a_t, q_t) to update the PG critic/baseline
         if self.critic is not None:
@@ -103,12 +103,17 @@ class PGAgent(nn.Module):
             # trajectory at each point.
             # In other words: Q(s_t, a_t) = sum_{t'=0}^T gamma^t' r_{t'}
             # TODO: use the helper function self._discounted_return to calculate the Q-values
-            q_values = [self._discounted_return(r) for r in rewards]
+            #breakpoint()
+            q_values = np.concatenate(
+                [self._discounted_return(reward) for reward in rewards], axis=0
+            )
         else:
             # Case 2: in reward-to-go PG, we only use the rewards after timestep t to estimate the Q-value for (s_t, a_t).
             # In other words: Q(s_t, a_t) = sum_{t'=t}^T gamma^(t'-t) * r_{t'}
             # TODO: use the helper function self._discounted_reward_to_go to calculate the Q-values
-            q_values = [self._discounted_reward_to_go(r) for r in rewards]
+            q_values = np.concatenate(
+                [self._discounted_reward_to_go(reward) for reward in rewards], axis=0
+            )
 
         return q_values
 
